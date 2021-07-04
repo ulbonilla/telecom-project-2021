@@ -67,16 +67,31 @@ The `Telecom users dataset` provided by `Radmir Zosimov`is publicly available at
 
 ```{r downloading data from API, eval = FALSE}
 # this code chuck has to be evaluated only once
+key <- str_c(path,'/kaggle.json') # kaggle API key
 
-kaggler::kgl_auth(creds_file = str_c(path,'/kaggle.json'))
+if (file.exists(key)) {
+  
+  kaggler::kgl_auth(creds_file = key) # to run this code you need a kaggle key!!
+  
+  response <- kgl_datasets_download_all(owner_dataset = "radmirzosimov/telecom-users-dataset")
+  
+  download.file(response[["url"]],  str_c(path,"/data.zip"), mode="wb")
+  
+  unzip(str_c(path,"/data.zip"), exdir = str_c(path,"/data"), overwrite = TRUE)
+  
+  rm(response) # not used
+  
+  data <- read.csv(str_c(path,"/data/telecom_users.csv"), 
+                   stringsAsFactors = TRUE) %>% 
+          select(-X)
+  
+} else { # without the key, the data can be downloaded from github
+  
+  data <- read.csv("https://raw.githubusercontent.com/ulbonilla/telecom-project-2021/main/telecom_users.csv", 
+          stringsAsFactors = TRUE) %>% 
+          select(-X)
 
-response <- kgl_datasets_download_all(owner_dataset = "radmirzosimov/telecom-users-dataset")
-
-download.file(response[["url"]],  str_c(path,"/data.zip"), mode="wb")
-
-unzip(str_c(path,"/data.zip"), exdir = str_c(path,"/data"), overwrite = TRUE)
-
-rm(response)
+}
 
 ```
 
@@ -340,11 +355,11 @@ train_data <- read.csv(str_c(path, "/train_data.csv")),
               select(-X)
 
 # support vector machine
-mmodel_svm <- caret::train(Churn ~ .,
+model_svm <- caret::train(Churn ~ .,
                             data = train_data,
                             method = "svmLinear",
                             preProcess = c("scale", "center"),
-                            trControl = ctrl2,
+                            trControl = ctrl,
                             na.action = na.exclude)
 
 saveRDS(object = model_svm, file = str_c(path, "/model_svm.rds"))
